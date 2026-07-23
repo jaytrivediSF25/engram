@@ -2,8 +2,8 @@
 
 import pytest
 
-import acw.store as store_mod
-from acw.store import Store
+import engram.store as store_mod
+from engram.store import Store
 
 
 def word_counter(text: str, model: str) -> int:

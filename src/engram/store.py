@@ -13,7 +13,7 @@ DEFAULT_WINDOW_TOKENS = 50_000
 DEFAULT_ANCHOR_TOKENS = 10_000
 DEFAULT_MODEL = "claude-opus-4-8"
 
-ROOT = Path.home() / ".acw" / "projects"
+ROOT = Path.home() / ".engram" / "projects"
 
 
 def store_dir_for(project_path: str | Path) -> Path:

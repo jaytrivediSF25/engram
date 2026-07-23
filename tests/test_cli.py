@@ -2,10 +2,10 @@
 
 import pytest
 
-import acw.compact
-import acw.store as store_mod
-import acw.tokens
-from acw.cli import main
+import engram.compact
+import engram.store as store_mod
+import engram.tokens
+from engram.cli import main
 
 
 @pytest.fixture
@@ -14,9 +14,9 @@ def project(tmp_path, monkeypatch):
     proj = tmp_path / "proj"
     proj.mkdir()
     monkeypatch.chdir(proj)
-    monkeypatch.setattr(acw.tokens, "count_tokens", lambda text, model: len(text.split()))
+    monkeypatch.setattr(engram.tokens, "count_tokens", lambda text, model: len(text.split()))
     monkeypatch.setattr(
-        acw.compact, "compact", lambda text, model, budget: "compacted anchor"
+        engram.compact, "compact", lambda text, model, budget: "compacted anchor"
     )
     return proj
 
@@ -54,7 +54,7 @@ def test_add_context_roundtrip(project, capsys):
 
 def test_context_without_store(project, capsys):
     main(["context"])
-    assert "no acw context yet" in capsys.readouterr().out
+    assert "no engram context yet" in capsys.readouterr().out
 
 
 def test_add_anchor_direct(project, capsys):
@@ -70,7 +70,7 @@ def test_reset_force(project, capsys):
     main(["reset", "--force"])
     assert "store deleted" in capsys.readouterr().out
     main(["context"])
-    assert "no acw context yet" in capsys.readouterr().out
+    assert "no engram context yet" in capsys.readouterr().out
 
 
 def test_empty_input_errors(project, capsys):

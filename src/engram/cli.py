@@ -1,4 +1,4 @@
-"""acw command-line interface."""
+"""engram command-line interface."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .store import (
 
 
 def _die(msg: str, code: int = 1) -> "NoReturn":  # noqa: F821
-    print(f"acw: {msg}", file=sys.stderr)
+    print(f"engram: {msg}", file=sys.stderr)
     raise SystemExit(code)
 
 
@@ -50,7 +50,7 @@ def cmd_init(args) -> None:
         anchor_tokens=args.anchor_tokens,
         model=args.model,
     )
-    print(f"initialized acw store for {store.config['project_path']}")
+    print(f"initialized engram store for {store.config['project_path']}")
     print(
         f"  window {store.window_tokens} tokens "
         f"(anchor {store.anchor_budget} + sliding {store.sliding_budget}), "
@@ -69,7 +69,7 @@ def cmd_add(args) -> None:
         actual = count_tokens(content, store.model)
         if actual > store.anchor_budget:
             print(
-                f"acw: anchor content is {actual} tokens (cap {store.anchor_budget}); compacting",
+                f"engram: anchor content is {actual} tokens (cap {store.anchor_budget}); compacting",
                 file=sys.stderr,
             )
             try:
@@ -116,7 +116,7 @@ def cmd_context(args) -> None:
     try:
         store = Store.load(os.getcwd())
     except StoreNotFound:
-        print("(no acw context yet for this project)")
+        print("(no engram context yet for this project)")
         return
 
     if args.json:
@@ -132,13 +132,13 @@ def cmd_context(args) -> None:
         return
 
     rendered = render_context(store)
-    print(rendered if rendered else "(no acw context yet for this project)")
+    print(rendered if rendered else "(no engram context yet for this project)")
 
 
 def cmd_claude(args) -> None:
     """Launch Claude Code with the anchored sliding window active.
 
-    Sets ACW_ACTIVE so the SessionStart/SessionEnd hooks (which are inert
+    Sets ENGRAM_ACTIVE so the SessionStart/SessionEnd hooks (which are inert
     otherwise) inject the context at start and capture the session at exit.
     """
     try:
@@ -146,10 +146,10 @@ def cmd_claude(args) -> None:
             raise StoreNotFound(os.getcwd())
     except StoreNotFound:
         print(
-            "acw: no context for this project yet — this session will seed it",
+            "engram: no context for this project yet — this session will seed it",
             file=sys.stderr,
         )
-    os.environ["ACW_ACTIVE"] = "1"
+    os.environ["ENGRAM_ACTIVE"] = "1"
     try:
         os.execvp("claude", ["claude", *args.extra])
     except FileNotFoundError:
@@ -157,12 +157,12 @@ def cmd_claude(args) -> None:
 
 
 def cmd_hook_session_start(args) -> None:
-    """SessionStart hook: inject this project's acw context into the session.
+    """SessionStart hook: inject this project's engram context into the session.
 
-    Inert unless the session was launched via `acw claude` (ACW_ACTIVE=1),
+    Inert unless the session was launched via `engram` (ENGRAM_ACTIVE=1),
     so plain `claude` sessions are untouched.
     """
-    if not os.environ.get("ACW_ACTIVE"):
+    if not os.environ.get("ENGRAM_ACTIVE"):
         return
     try:
         payload = json.load(sys.stdin)
@@ -181,7 +181,7 @@ def cmd_hook_session_start(args) -> None:
                 "hookSpecificOutput": {
                     "hookEventName": "SessionStart",
                     "additionalContext": (
-                        "Prior project context from acw (anchored sliding window — "
+                        "Prior project context from engram (anchored sliding window — "
                         "a pinned summary of founding context plus recent sessions):\n\n"
                         + rendered
                     ),
@@ -194,9 +194,9 @@ def cmd_hook_session_start(args) -> None:
 def cmd_hook_session_end(args) -> None:
     """SessionEnd hook: capture the session transcript as a new chat tile.
 
-    Inert unless the session was launched via `acw claude` (ACW_ACTIVE=1).
+    Inert unless the session was launched via `engram` (ENGRAM_ACTIVE=1).
     """
-    if not os.environ.get("ACW_ACTIVE"):
+    if not os.environ.get("ENGRAM_ACTIVE"):
         return
     from .capture import condense_transcript
     from .compact import CompactionError, compact
@@ -218,17 +218,17 @@ def cmd_hook_session_end(args) -> None:
     store = Store.load_or_create(cwd)
     try:
         result = store.add_chat(condensed, counter=count_tokens, compactor=compact)
-        print(f"acw: captured session as chat #{result.chat.id}")
+        print(f"engram: captured session as chat #{result.chat.id}")
     except CompactionError as e:
         # Chat is stored; eviction retries next time compaction succeeds.
-        print(f"acw: chat stored, eviction deferred — {e}", file=sys.stderr)
+        print(f"engram: chat stored, eviction deferred — {e}", file=sys.stderr)
 
 
 def cmd_status(args) -> None:
     try:
         store = Store.load(os.getcwd())
     except StoreNotFound:
-        _die("no acw store for this project — run `acw init` or `acw add`")
+        _die("no engram store for this project — run `engram init` or `engram add`")
     chats = store.chats()
     sliding = sum(c.tokens for c in chats)
     anchor_actual = store.state.get("anchor_tokens_actual", 0)
@@ -249,9 +249,9 @@ def cmd_reset(args) -> None:
     try:
         store = Store.load(os.getcwd())
     except StoreNotFound:
-        _die("no acw store for this project")
+        _die("no engram store for this project")
     if not args.force:
-        reply = input(f"delete acw store for {store.config['project_path']}? [y/N] ")
+        reply = input(f"delete engram store for {store.config['project_path']}? [y/N] ")
         if reply.strip().lower() not in ("y", "yes"):
             print("aborted")
             return
@@ -264,12 +264,12 @@ def cmd_reset(args) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="acw",
+        prog="engram",
         description="Anchored sliding window context manager: a pinned, "
         "LLM-compacted anchor of founding context plus a token-budgeted "
         "sliding window of recent chats.",
     )
-    p.add_argument("--version", action="version", version=f"acw {__version__}")
+    p.add_argument("--version", action="version", version=f"engram {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("init", help="create the store for the current directory")
@@ -320,7 +320,26 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+COMMANDS = {
+    "init",
+    "add",
+    "context",
+    "status",
+    "reset",
+    "claude",
+    "hook-session-start",
+    "hook-session-end",
+}
+
+
 def main(argv: list[str] | None = None) -> None:
+    if argv is None:
+        argv = sys.argv[1:]
+    # Bare `engram` (or `engram <claude flags>`) launches Claude with the
+    # anchored window; anything else is a normal subcommand.
+    if not argv or argv[0] not in COMMANDS | {"-h", "--help", "--version"}:
+        cmd_claude(argparse.Namespace(extra=list(argv)))
+        return
     args = build_parser().parse_args(argv)
     try:
         args.func(args)

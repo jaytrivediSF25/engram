@@ -37,8 +37,8 @@ class CompactionError(Exception):
 
 
 def _run_claude(prompt: str) -> str:
-    env = {k: v for k, v in os.environ.items() if k != "ACW_ACTIVE"}
-    # ACW_ACTIVE is stripped so this headless session doesn't trigger our own
+    env = {k: v for k, v in os.environ.items() if k != "ENGRAM_ACTIVE"}
+    # ENGRAM_ACTIVE is stripped so this headless session doesn't trigger our own
     # hooks and capture itself as a chat.
     try:
         result = subprocess.run(
@@ -73,7 +73,7 @@ def compact(founding_text: str, model: str, anchor_budget: int) -> str:
     actual = count_tokens(summary)
     if actual > anchor_budget:
         print(
-            f"acw: anchor summary was ~{actual} tokens (cap {anchor_budget}); retrying tighter",
+            f"engram: anchor summary was ~{actual} tokens (cap {anchor_budget}); retrying tighter",
             file=sys.stderr,
         )
         summary = _run_claude(

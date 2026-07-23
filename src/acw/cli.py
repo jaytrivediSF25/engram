@@ -136,29 +136,34 @@ def cmd_context(args) -> None:
 
 
 def cmd_claude(args) -> None:
-    """Launch Claude Code with this project's acw context preloaded."""
-    try:
-        rendered = render_context(Store.load(os.getcwd()))
-    except StoreNotFound:
-        rendered = None
+    """Launch Claude Code with the anchored sliding window active.
 
-    cmd = ["claude"]
-    if rendered:
-        cmd.append(
-            "Prior project context from acw (anchored sliding window). "
-            "Treat this as what happened before this session:\n\n" + rendered
-        )
-    else:
-        print("acw: no context for this project yet — starting claude fresh", file=sys.stderr)
-    cmd += args.extra
+    Sets ACW_ACTIVE so the SessionStart/SessionEnd hooks (which are inert
+    otherwise) inject the context at start and capture the session at exit.
+    """
     try:
-        os.execvp("claude", cmd)
+        if render_context(Store.load(os.getcwd())) is None:
+            raise StoreNotFound(os.getcwd())
+    except StoreNotFound:
+        print(
+            "acw: no context for this project yet — this session will seed it",
+            file=sys.stderr,
+        )
+    os.environ["ACW_ACTIVE"] = "1"
+    try:
+        os.execvp("claude", ["claude", *args.extra])
     except FileNotFoundError:
         _die("`claude` not found on PATH — install Claude Code first")
 
 
 def cmd_hook_session_start(args) -> None:
-    """SessionStart hook: inject this project's acw context into the session."""
+    """SessionStart hook: inject this project's acw context into the session.
+
+    Inert unless the session was launched via `acw claude` (ACW_ACTIVE=1),
+    so plain `claude` sessions are untouched.
+    """
+    if not os.environ.get("ACW_ACTIVE"):
+        return
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
@@ -187,7 +192,12 @@ def cmd_hook_session_start(args) -> None:
 
 
 def cmd_hook_session_end(args) -> None:
-    """SessionEnd hook: capture the session transcript as a new chat tile."""
+    """SessionEnd hook: capture the session transcript as a new chat tile.
+
+    Inert unless the session was launched via `acw claude` (ACW_ACTIVE=1).
+    """
+    if not os.environ.get("ACW_ACTIVE"):
+        return
     from .capture import condense_transcript
     from .compact import CompactionError, compact
     from .tokens import count_tokens_or_estimate

@@ -66,8 +66,8 @@ cat <<'EOF'
 
 Quickstart:
   cd your-project
-  claude                # context auto-loads at start, session auto-saves at exit
-  # or: acw claude      # same, with context injected as the opening message
+  acw claude            # Claude with the anchored window: loads at start, saves at exit
+  claude                # plain Claude, acw stays out of the way
 
 Inspect the window any time:
   acw status            # tiles + token budgets

@@ -4,6 +4,7 @@
 
 *An engram is the physical trace a memory leaves in the brain. This one lives on your disk.*
 
+[![CI](https://github.com/jaytrivediSF25/engram/actions/workflows/ci.yml/badge.svg)](https://github.com/jaytrivediSF25/engram/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg)](https://www.python.org)
 [![Claude Code](https://img.shields.io/badge/works%20with-Claude%20Code-D97757.svg)](https://claude.com/claude-code)

@@ -1,0 +1,38 @@
+name: Bug report
+description: Something broke — a chat was lost, a hook misfired, the anchor got mangled
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what actually happened?
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: "`engram status` output"
+      description: Run `engram status` in the affected project and paste the output.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: engram version
+      description: "`engram --version`"
+      placeholder: engram 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15.1 / Ubuntu 24.04
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Sanity checks
+      options:
+        - label: I ran the session via `engram` (not plain `claude`)
+        - label: I restarted Claude Code after installing

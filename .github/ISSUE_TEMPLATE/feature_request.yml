@@ -1,0 +1,29 @@
+name: Feature request
+description: An idea for the anchor, the window, or the workflow
+title: "[feat]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the situation where engram falls short today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Anchor / compaction
+        - Sliding window / eviction
+        - Capture (transcript parsing)
+        - CLI / UX
+        - Install / hooks
+        - Other

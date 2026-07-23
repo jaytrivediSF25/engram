@@ -34,9 +34,9 @@ tile when you quit (oldest evicts; the first eviction compacts the anchor) —
 exactly like the diagram. Plain `claude` is untouched: the installed
 SessionStart/SessionEnd hooks are inert unless launched via `acw claude`.
 
-Anchor compaction and exact token counts use the Anthropic API
-(`ANTHROPIC_API_KEY` or an `ant auth login` profile). Without it, chats are
-still captured using estimated token counts.
+Everything runs on your Claude subscription — anchor compaction uses headless
+`claude -p`, and token budgets use a built-in estimator. No API key, no
+credits.
 
 ## Usage
 

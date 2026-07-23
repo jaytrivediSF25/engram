@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .secure import harden_path, harden_tree, redact, secure_write_text
+
 DEFAULT_WINDOW_TOKENS = 50_000
 DEFAULT_ANCHOR_TOKENS = 10_000
 DEFAULT_MODEL = "claude-opus-4-8"
@@ -65,17 +67,22 @@ class Store:
             raise ValueError("anchor_tokens must be smaller than window_tokens")
         root = store_dir_for(project_path)
         (root / "chats").mkdir(parents=True, exist_ok=True)
+        # Lock down ~/.engram, ~/.engram/projects, the store, and chats/ to 0700
+        # so no other user on the machine can read captured project detail.
+        for d in (ROOT.parent, ROOT, root, root / "chats"):
+            harden_path(d)
         config = {
             "project_path": str(Path(project_path).resolve()),
             "window_tokens": window_tokens,
             "anchor_tokens": anchor_tokens,
             "model": model,
         }
-        (root / "config.json").write_text(json.dumps(config, indent=2))
+        secure_write_text(root / "config.json", json.dumps(config, indent=2))
         state_path = root / "state.json"
         if not state_path.exists():
-            state_path.write_text(
-                json.dumps({"next_id": 1, "anchor_built": False, "anchor_tokens_actual": 0})
+            secure_write_text(
+                state_path,
+                json.dumps({"next_id": 1, "anchor_built": False, "anchor_tokens_actual": 0}),
             )
         return cls(root)
 
@@ -84,6 +91,7 @@ class Store:
         root = store_dir_for(project_path)
         if not (root / "config.json").exists():
             raise StoreNotFound(str(project_path))
+        harden_tree(root)  # keep perms tight even for stores made by older versions
         return cls(root)
 
     @classmethod
@@ -128,13 +136,13 @@ class Store:
     # ── mutation ─────────────────────────────────────────────────────────
 
     def _save_state(self) -> None:
-        (self.root / "state.json").write_text(json.dumps(self.state))
+        secure_write_text(self.root / "state.json", json.dumps(self.state))
 
     def _write_chat(self, chat: Chat) -> None:
-        (self.chats_dir / chat.filename).write_text(json.dumps(chat.__dict__))
+        secure_write_text(self.chats_dir / chat.filename, json.dumps(chat.__dict__))
 
     def set_anchor(self, text: str, tokens: int) -> None:
-        (self.root / "anchor.md").write_text(text)
+        secure_write_text(self.root / "anchor.md", text)
         self.state["anchor_built"] = True
         self.state["anchor_tokens_actual"] = tokens
         self._save_state()
@@ -149,6 +157,7 @@ class Store:
         touched afterwards. If compaction fails, nothing is evicted and the
         error propagates (the new chat is still stored).
         """
+        content = redact(content)  # scrub credential-shaped strings before storing
         chat = Chat(
             id=self.state["next_id"],
             created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),

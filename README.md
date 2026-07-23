@@ -32,6 +32,7 @@ Every session opens knowing your project's founding goals, constraints, and deci
 - **Opt-in per session** — `engram` gets the window; plain `claude` is completely untouched.
 - **Zero API cost** — compaction runs through headless `claude -p` on your existing subscription.
 - **Per-project** — every folder gets its own anchor and window.
+- **Secure by default** — secrets are scrubbed before capture, the store is `0700`/`0600`, writes are atomic, and compaction treats session text as untrusted data. See [SECURITY.md](SECURITY.md).
 
 ## Quick start
 

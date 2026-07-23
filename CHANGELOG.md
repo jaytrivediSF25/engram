@@ -4,6 +4,20 @@ All notable changes to engram are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); versions follow
 [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Security
+- **Secret redaction** before any tile is stored — Anthropic/OpenAI/AWS/GitHub/
+  Google/Slack/Stripe keys, JWTs, PEM private keys, `NAME=secret` assignments,
+  and bearer tokens are replaced with `‹redacted:KIND›`.
+- **Private-by-default storage** — `~/.engram` tree created `0700`/`0600`;
+  atomic writes (temp + rename); legacy stores re-hardened on load.
+- **Prompt-injection fencing** for the `claude -p` compaction step — transcript
+  content is fenced as untrusted data and fence markers are stripped from input.
+- **Bounded transcript reads** — regular files only, 50 MB cap.
+- **Atomic settings.json patch** in the installer.
+- Added `docs/` threat-model-backed SECURITY.md and `tests/test_secure.py`.
+
 ## [0.1.0] — 2026-07-23
 
 Initial release.

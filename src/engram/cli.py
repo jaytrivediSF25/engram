@@ -66,6 +66,9 @@ def cmd_add(args) -> None:
     content = _read_content(args)
 
     if args.anchor:
+        from .secure import redact
+
+        content = redact(content)
         actual = count_tokens(content, store.model)
         if actual > store.anchor_budget:
             print(

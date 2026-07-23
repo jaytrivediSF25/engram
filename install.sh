@@ -63,9 +63,13 @@ def ensure(event, cmd, timeout):
 r1 = ensure("SessionStart", f'"{engram}" hook-session-start', 30)
 r2 = ensure("SessionEnd", f'"{engram}" hook-session-end', 120)
 
-with open(path, "w") as f:
+# Atomic write: serialize fully, then rename over the original, so an
+# interrupted install can never leave ~/.claude/settings.json half-written.
+tmp = path + ".engram-tmp"
+with open(tmp, "w") as f:
     json.dump(settings, f, indent=2)
     f.write("\n")
+os.replace(tmp, path)
 print(f"    SessionStart hook {r1}, SessionEnd hook {r2}")
 PY
 

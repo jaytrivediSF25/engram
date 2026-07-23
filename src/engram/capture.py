@@ -8,6 +8,7 @@ from pathlib import Path
 MAX_MSG_CHARS = 1500
 MAX_TOTAL_CHARS = 12_000
 MIN_CHARS = 200  # skip trivial sessions
+MAX_TRANSCRIPT_BYTES = 50 * 1024 * 1024  # 50 MB read cap — never OOM on a huge/hostile file
 
 
 def _text_of(content) -> str:
@@ -24,8 +25,14 @@ def _text_of(content) -> str:
 def condense_transcript(path: str | Path) -> str | None:
     """Turn a session transcript into a compact chat record, or None if trivial."""
     lines: list[str] = []
+    p = Path(path)
     try:
-        raw = Path(path).read_text()
+        # Only read a regular file (not a fifo/device/symlink-to-device), and
+        # cap the read so a huge or hostile transcript can't exhaust memory.
+        if not p.is_file():
+            return None
+        with p.open("r", encoding="utf-8", errors="replace") as f:
+            raw = f.read(MAX_TRANSCRIPT_BYTES)
     except OSError:
         return None
 

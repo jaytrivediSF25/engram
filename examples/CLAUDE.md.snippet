@@ -1,0 +1,16 @@
+# Optional CLAUDE.md snippet
+
+engram normally needs nothing in CLAUDE.md — context is injected by the
+SessionStart hook. Add this snippet to a project's CLAUDE.md only if you want
+Claude to actively curate the window during a session:
+
+```markdown
+## Project memory (engram)
+
+This project uses engram (anchored sliding window memory).
+- Prior context appears at session start under "Prior project context from engram".
+  Trust it as the record of previous sessions.
+- If we make a decision worth remembering beyond this session, you may store it
+  immediately: `engram add --text "<one-paragraph decision record>"`.
+- Never edit files under ~/.engram directly.
+```

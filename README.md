@@ -50,6 +50,40 @@ engram
 
 That's it. Work, quit, come back tomorrow, run `engram` again — the new session already knows where you left off *and* why the project exists.
 
+## What it looks like
+
+Day one — plan the project:
+
+```console
+$ cd shoplite && engram
+engram: no context for this project yet — this session will seed it
+
+> Let's plan: offline-first inventory tracker, Raspberry Pi at the register,
+> SQLite only, $2k budget, Q3 deadline. Flask over Node — team knows Flask.
+```
+
+Weeks later — the planning session has long since slid out of the window, but the new session still opens knowing:
+
+```console
+$ engram status
+anchor  : built — 161/10000 tokens
+sliding : 31240/40000 tokens across 4 chat(s)
+
+$ engram
+> where were we?
+
+⏺ Per the project anchor: shoplite is an offline-first inventory tracker
+  (Pi + SQLite, $2k budget, Q3, USB barcode scanners non-negotiable).
+  Last session we finished the HID scanner debouncing — next up was the
+  offline sync queue.
+```
+
+Want to see eviction + anchor-building happen in seconds? Run the miniature demo:
+
+```sh
+make demo    # tiny budgets, three simulated sessions, watch the anchor get built
+```
+
 ## Why this exists
 
 Two pure strategies for long-running project context, two failure modes:
@@ -121,6 +155,57 @@ engram init \
 ```
 
 Everything is plain text on your disk. Read it, edit it, delete it.
+
+## engram vs. alternatives
+
+| | engram | CLAUDE.md | Built-in compaction | Memory MCP servers |
+|---|:---:|:---:|:---:|:---:|
+| Automatic (no hand-writing) | ✅ | ❌ | ✅ | varies |
+| Survives across sessions | ✅ | ✅ | ❌ | ✅ |
+| Founding context can never age out | ✅ | ✅ | ❌ | ❌ |
+| Recent sessions kept verbatim | ✅ | ❌ | ❌ | ❌ |
+| Bounded, predictable token cost | ✅ | ❌ | ✅ | ❌ |
+| Zero setup per project | ✅ | ❌ | ✅ | ❌ |
+| Plain files on your disk | ✅ | ✅ | ❌ | varies |
+
+They compose, not compete: CLAUDE.md tells Claude *how to work*, engram tells it *what has happened*, built-in compaction handles growth *within* a session.
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Tile model, eviction algorithm, hook lifecycle, failure model |
+| [docs/configuration.md](docs/configuration.md) | Budget tuning, store layout, hook JSON, env vars |
+| [docs/faq.md](docs/faq.md) | Subscriptions vs API, CLAUDE.md comparison, data location, … |
+| [SECURITY.md](SECURITY.md) | What engram touches, hardening notes, reporting |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+
+## FAQ (short version)
+
+- **Do I need an API key?** No — compaction runs through your local `claude` binary on your subscription.
+- **Does it slow plain `claude` down?** No — the hooks exit immediately unless the session was launched via `engram`.
+- **Where's my data?** `~/.engram/projects/`, plain JSON + markdown. Nothing leaves your machine.
+- **Can I edit the anchor?** Yes — it's just `anchor.md`, or `engram add --anchor`.
+
+More in [docs/faq.md](docs/faq.md).
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Session wasn't captured | Launch with `engram`, not `claude`; restart Claude Code after installing; sessions under ~200 chars are skipped as trivial |
+| No context at session start | `engram context` in the project folder — if empty, the window hasn't been seeded yet |
+| "eviction deferred" message | `claude -p` couldn't run (offline?). Nothing is lost — it retries on the next capture |
+| Hooks feel stale after reinstall | Open `/hooks` once inside Claude Code, or restart it |
+| Wrong project's context | Stores are keyed by folder — make sure you launched from the project root |
+
+## Roadmap
+
+- [ ] `engram export` / `engram import` — move a window between machines
+- [ ] Optional anchor refresh (`engram compact --refresh`) for pivots
+- [ ] Windows support (hooks are POSIX-flavored today)
+- [ ] Homebrew tap + npx installer
+- [ ] Multi-agent: share one anchor across worktrees
 
 ## Uninstall
 

@@ -22,18 +22,17 @@ cd acw
 ./install.sh
 ```
 
-The installer puts `acw` on your PATH and patches `~/.claude/settings.json`
-(backup kept) with two hooks:
+Then, whenever you want Claude with the anchored window:
 
-- **SessionStart** — injects the project's anchor + recent chats into every
-  new Claude Code session automatically
-- **SessionEnd** — captures the session transcript as the newest sliding tile
-  when you quit, evicting the oldest tile (and compacting the anchor the first
-  time) as needed
+```sh
+cd your-project
+acw claude
+```
 
-So after installing, just run `claude` in any project — the window loads at
-start and updates at exit, exactly like the diagram. Restart Claude Code (or
-open `/hooks` once) if it was already running.
+The window loads at session start and the session is captured as the newest
+tile when you quit (oldest evicts; the first eviction compacts the anchor) —
+exactly like the diagram. Plain `claude` is untouched: the installed
+SessionStart/SessionEnd hooks are inert unless launched via `acw claude`.
 
 Anchor compaction and exact token counts use the Anthropic API
 (`ANTHROPIC_API_KEY` or an `ant auth login` profile). Without it, chats are

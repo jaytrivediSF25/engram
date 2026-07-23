@@ -73,9 +73,8 @@ Inspect the window any time:
   acw status            # tiles + token budgets
   acw context           # the anchor + recent chats
 
-Note: anchor compaction + exact token counts use the Anthropic API
-(ANTHROPIC_API_KEY or `ant auth login`). Without it, chats are still
-captured using estimated token counts.
+Runs entirely on your Claude subscription (via headless `claude -p`) —
+no API key or credits needed.
 
 If Claude Code is already running, restart it (or open /hooks once) to load the hooks.
 EOF

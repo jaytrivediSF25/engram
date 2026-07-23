@@ -1,18 +1,21 @@
-"""Anchor compaction: condense founding chats into a pinned anchor via Claude."""
+"""Anchor compaction via headless Claude Code (`claude -p`).
+
+Runs on the user's Claude subscription — no API key or credits needed.
+"""
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 
-import anthropic
-
-from .tokens import count_tokens, get_client
+from .tokens import count_tokens
 
 COMPACT_SYSTEM = """\
 You compact the founding context of a software/work project into a pinned "anchor" \
 summary that will be permanently prepended to an AI agent's context.
 
-From the chat transcript(s) you are given, extract and condense:
+From the chat transcript(s) below, extract and condense:
 - The project's goals and intended outcome
 - Hard constraints (tech choices, budgets, deadlines, non-negotiables)
 - Founding decisions and the reasons behind them
@@ -22,29 +25,40 @@ Rules:
 - Write dense, factual markdown. No preamble, no meta-commentary.
 - Preserve concrete details (names, paths, numbers, choices) over narrative.
 - Drop small talk, dead ends, and anything derivable later.
-- Stay under {budget} tokens.\
+- Stay under {budget} tokens (~{chars} characters).
+- Output ONLY the summary itself.\
 """
 
-RETRY_NUDGE = (
-    "Your previous summary was {actual} tokens, over the {budget}-token cap. "
-    "Rewrite it tighter — keep only the most load-bearing facts."
-)
+TIMEOUT_SECONDS = 300
 
 
 class CompactionError(Exception):
     """Raised when the anchor could not be produced. Callers must not evict."""
 
 
-def _call(model: str, system: str, messages: list[dict]) -> str:
-    with get_client().messages.stream(
-        model=model,
-        max_tokens=16000,
-        thinking={"type": "adaptive"},
-        system=system,
-        messages=messages,
-    ) as stream:
-        final = stream.get_final_message()
-    return "".join(b.text for b in final.content if b.type == "text").strip()
+def _run_claude(prompt: str) -> str:
+    env = {k: v for k, v in os.environ.items() if k != "ACW_ACTIVE"}
+    # ACW_ACTIVE is stripped so this headless session doesn't trigger our own
+    # hooks and capture itself as a chat.
+    try:
+        result = subprocess.run(
+            ["claude", "-p", prompt],
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT_SECONDS,
+            env=env,
+        )
+    except FileNotFoundError as e:
+        raise CompactionError("`claude` not found on PATH") from e
+    except subprocess.TimeoutExpired as e:
+        raise CompactionError(f"claude -p timed out after {TIMEOUT_SECONDS}s") from e
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()[:300]
+        raise CompactionError(f"claude -p failed (exit {result.returncode}): {detail}")
+    summary = result.stdout.strip()
+    if not summary:
+        raise CompactionError("claude -p returned empty output")
+    return summary
 
 
 def compact(founding_text: str, model: str, anchor_budget: int) -> str:
@@ -52,27 +66,19 @@ def compact(founding_text: str, model: str, anchor_budget: int) -> str:
 
     Makes one retry with a tighter instruction if the first summary is over
     budget; returns the second attempt either way (best effort).
-    Raises CompactionError on API failure.
+    Raises CompactionError on failure.
     """
-    system = COMPACT_SYSTEM.format(budget=anchor_budget)
-    messages: list[dict] = [{"role": "user", "content": founding_text}]
-    try:
-        summary = _call(model, system, messages)
-        actual = count_tokens(summary, model)
-        if actual > anchor_budget:
-            print(
-                f"acw: anchor summary was {actual} tokens (cap {anchor_budget}); retrying tighter",
-                file=sys.stderr,
-            )
-            messages += [
-                {"role": "assistant", "content": summary},
-                {"role": "user", "content": RETRY_NUDGE.format(actual=actual, budget=anchor_budget)},
-            ]
-            summary = _call(model, system, messages)
-        return summary
-    except anthropic.RateLimitError as e:
-        raise CompactionError(f"rate limited by the Anthropic API: {e.message}") from e
-    except anthropic.APIStatusError as e:
-        raise CompactionError(f"Anthropic API error ({e.status_code}): {e.message}") from e
-    except anthropic.APIConnectionError as e:
-        raise CompactionError(f"could not reach the Anthropic API: {e}") from e
+    system = COMPACT_SYSTEM.format(budget=anchor_budget, chars=anchor_budget * 4)
+    summary = _run_claude(f"{system}\n\n---\n\n{founding_text}")
+    actual = count_tokens(summary)
+    if actual > anchor_budget:
+        print(
+            f"acw: anchor summary was ~{actual} tokens (cap {anchor_budget}); retrying tighter",
+            file=sys.stderr,
+        )
+        summary = _run_claude(
+            f"{system}\n\nYour previous attempt (below) was ~{actual} tokens, over the "
+            f"{anchor_budget}-token cap. Rewrite it tighter — keep only the most "
+            f"load-bearing facts.\n\n---\n\n{summary}"
+        )
+    return summary

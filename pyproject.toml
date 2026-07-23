@@ -3,7 +3,7 @@ name = "acw"
 version = "0.1.0"
 description = "Anchored sliding window context manager: a pinned, LLM-compacted anchor of founding context plus a token-budgeted sliding window of recent chats"
 requires-python = ">=3.10"
-dependencies = ["anthropic>=0.60.0"]
+dependencies = []
 
 [project.scripts]
 acw = "acw.cli:main"

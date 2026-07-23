@@ -200,7 +200,7 @@ def cmd_hook_session_end(args) -> None:
         return
     from .capture import condense_transcript
     from .compact import CompactionError, compact
-    from .tokens import count_tokens_or_estimate
+    from .tokens import count_tokens
 
     try:
         payload = json.load(sys.stdin)
@@ -217,7 +217,7 @@ def cmd_hook_session_end(args) -> None:
 
     store = Store.load_or_create(cwd)
     try:
-        result = store.add_chat(condensed, counter=count_tokens_or_estimate, compactor=compact)
+        result = store.add_chat(condensed, counter=count_tokens, compactor=compact)
         print(f"acw: captured session as chat #{result.chat.id}")
     except CompactionError as e:
         # Chat is stored; eviction retries next time compaction succeeds.
@@ -326,20 +326,6 @@ def main(argv: list[str] | None = None) -> None:
         args.func(args)
     except ValueError as e:
         _die(str(e))
-    except Exception as e:  # friendly messages for Anthropic API failures
-        import anthropic
-
-        if isinstance(e, anthropic.AuthenticationError):
-            _die(
-                "Anthropic auth failed — set ANTHROPIC_API_KEY or run `ant auth login`"
-            )
-        if isinstance(e, anthropic.RateLimitError):
-            _die(f"rate limited by the Anthropic API: {e.message}")
-        if isinstance(e, anthropic.APIStatusError):
-            _die(f"Anthropic API error ({e.status_code}): {e.message}")
-        if isinstance(e, anthropic.APIConnectionError):
-            _die(f"could not reach the Anthropic API: {e}")
-        raise
 
 
 if __name__ == "__main__":
